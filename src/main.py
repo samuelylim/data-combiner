@@ -2,7 +2,7 @@
 import sys
 import asyncio
 from pathlib import Path
-from http_client import make_request, close_session
+from utils.http_client import make_request, close_session
 from import_loader import load_all_imports
 from dataset_loader import load_all_datasets
 from api_loader import load_all_apis

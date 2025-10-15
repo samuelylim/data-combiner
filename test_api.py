@@ -2,7 +2,7 @@ import asyncio
 from api_loader import load_all_apis
 from sources_loader import load_sources
 from pathlib import Path
-from http_client import close_session
+from utils.http_client import close_session
 
 async def test():
     sources = load_sources(Path.cwd().parent)

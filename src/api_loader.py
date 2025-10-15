@@ -15,7 +15,7 @@ Supports:
 import json
 from typing import Dict, Any, List, Union, Optional
 from pathlib import Path
-from http_client import make_request
+from utils.http_client import make_request
 from utils.schema_utils import validate_config
 from utils.file_utils import parse_html_table
 from utils.data_utils import process_column_value, get_nested_value

@@ -8,7 +8,7 @@ according to import configurations defined in sources/imports/.
 import json
 from typing import Dict, Any
 from pathlib import Path
-from http_client import make_request
+from utils.http_client import make_request
 from utils.schema_utils import validate_config
 from utils.file_utils import detect_file_format, parse_csv_tsv, parse_xlsx
 from utils.data_utils import process_column_value
