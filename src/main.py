@@ -13,13 +13,12 @@ from import_loader import load_all_imports
 _SCHEMA_CACHE = {}
 
 
-def load_schema(schema_name: str) -> Dict[str, Any]:
+def load_schema(schema_path: Path) -> Dict[str, Any]:
     """
-    Load and cache a JSON schema from the schemas directory.
+    Load and cache a JSON schema from a file path.
     
     Args:
-        schema_name: Name of the schema file (without .json extension)
-                    e.g., 'api', 'dataset', or 'import'
+        schema_path: Path object pointing to the schema file
     
     Returns:
         Dictionary containing the JSON schema
@@ -28,42 +27,39 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
         FileNotFoundError: If schema file doesn't exist
         json.JSONDecodeError: If schema file contains invalid JSON
     """
-    if schema_name in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[schema_name]
-    
-    # Get the project root directory (parent of src/)
-    project_root = Path(__file__).parent.parent
-    schema_path = project_root / "schemas" / f"{schema_name}.json"
+    schema_key = str(schema_path)
+    if schema_key in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[schema_key]
     
     if not schema_path.exists():
         raise FileNotFoundError(f"Schema file not found: {schema_path}")
     
     with open(schema_path, 'r', encoding='utf-8') as f:
         schema = json.load(f)
-        _SCHEMA_CACHE[schema_name] = schema
+        _SCHEMA_CACHE[schema_key] = schema
         return schema
 
 
-def validate_config(config: Dict[str, Any], schema_name: str, source_name: str) -> None:
+def validate_config(config: Dict[str, Any], schema_path: Path, source_name: str) -> None:
     """
     Validate a configuration against its JSON schema.
     
     Args:
         config: The configuration dictionary to validate
-        schema_name: Name of the schema to validate against ('api', 'dataset', or 'import')
+        schema_path: Path to the schema file to validate against
         source_name: Name of the source file/folder for error reporting
         
     Raises:
         SystemExit: If validation fails
     """
     try:
-        schema = load_schema(schema_name)
+        schema = load_schema(schema_path)
         validate(instance=config, schema=schema)
     except FileNotFoundError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except SchemaError as e:
-        print(f"Error: Invalid schema '{schema_name}.json': {e.message}")
+        print(f"Error: Invalid schema at '{schema_path}': {e.message}")
         sys.exit(1)
     except ValidationError as e:
         print(f"Error: Validation failed for {source_name}")
@@ -96,13 +92,17 @@ def load_sources() -> Dict[str, list]:
     
     # Load API definitions from sources/apis/
     apis_dir = sources_dir / "apis"
+    api_schema_path = apis_dir / "schema.json"
     if apis_dir.exists():
         for file_path in apis_dir.glob("*.json"):
+            # Skip the schema file itself
+            if file_path.name == "schema.json":
+                continue
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     api_config = json.load(f)
                     # Validate against API schema
-                    validate_config(api_config, 'api', file_path.name)
+                    validate_config(api_config, api_schema_path, file_path.name)
                     api_config['_source_file'] = file_path.name
                     sources["apis"].append(api_config)
                     print(f"Loaded API config: {file_path.name}")
@@ -115,6 +115,7 @@ def load_sources() -> Dict[str, list]:
     
     # Load dataset definitions from sources/datasets/
     datasets_dir = sources_dir / "datasets"
+    dataset_schema_path = datasets_dir / "schema.json"
     if datasets_dir.exists():
         for dataset_folder in datasets_dir.iterdir():
             if dataset_folder.is_dir():
@@ -124,7 +125,7 @@ def load_sources() -> Dict[str, list]:
                         with open(structure_file, 'r', encoding='utf-8') as f:
                             dataset_config = json.load(f)
                             # Validate against dataset schema
-                            validate_config(dataset_config, 'dataset', f"{dataset_folder.name}/structure.json")
+                            validate_config(dataset_config, dataset_schema_path, f"{dataset_folder.name}/structure.json")
                             dataset_config['_source_folder'] = dataset_folder.name
                             dataset_config['_folder_path'] = str(dataset_folder)
                             sources["datasets"].append(dataset_config)
@@ -141,13 +142,17 @@ def load_sources() -> Dict[str, list]:
     
     # Load import definitions from sources/imports/
     imports_dir = sources_dir / "imports"
+    import_schema_path = imports_dir / "schema.json"
     if imports_dir.exists():
         for file_path in imports_dir.glob("*.json"):
+            # Skip the schema file itself
+            if file_path.name == "schema.json":
+                continue
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     import_config = json.load(f)
                     # Validate against import schema
-                    validate_config(import_config, 'import', file_path.name)
+                    validate_config(import_config, import_schema_path, file_path.name)
                     import_config['_source_file'] = file_path.name
                     sources["imports"].append(import_config)
                     print(f"Loaded import config: {file_path.name}")
@@ -164,6 +169,7 @@ def load_sources() -> Dict[str, list]:
 if __name__ == "__main__":
     # Load sources from disk
     sources = load_sources()
+
     
     # Print summary
     print(f"\n=== Sources Loaded ===")
