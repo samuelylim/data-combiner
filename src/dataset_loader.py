@@ -56,7 +56,7 @@ def get_files_to_process(config: Dict[str, Any], folder_path: Path) -> List[Path
         # Convert glob pattern to regex-friendly format
         try:
             for file_path in folder_path.iterdir():
-                if file_path.is_file() and re.match(pattern.replace("*", ".*"), file_path.name):
+                if file_path.is_file() and re.match(pattern, file_path.name):
                     if file_path not in files_to_process:
                         files_to_process.append(file_path)
         except re.error as e:
