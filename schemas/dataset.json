@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dataset Configuration",
+  "description": "Schema for dataset configurations in the data-combiner project",
+  "type": "object",
+  "required": ["column_map"],
+  "properties": {
+    "file_names": {
+      "type": "array",
+      "description": "Specific file names to import from the dataset folder",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "file_patterns": {
+      "type": "array",
+      "description": "Regex patterns to match file names",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "separator": {
+      "type": "string",
+      "description": "Delimiter for CSV/TSV files (defaults to ',' for CSV, '\\t' for TSV)",
+      "minLength": 1
+    },
+    "sheet": {
+      "type": "string",
+      "description": "Sheet name for XLSX files",
+      "minLength": 1
+    },
+    "file_encoding": {
+      "type": "string",
+      "description": "File encoding (default is 'utf-8')",
+      "default": "utf-8"
+    },
+    "has_header": {
+      "type": "boolean",
+      "description": "Whether the file includes a header row",
+      "default": false
+    },
+    "null_values": {
+      "type": "array",
+      "description": "Strings to treat as null values",
+      "items": {
+        "type": "string"
+      }
+    },
+    "column_map": {
+      "description": "Maps database columns to dataset columns",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Object mapping when using column names",
+          "minProperties": 1,
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Direct mapping to a column name"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "column": {
+                    "type": "string",
+                    "description": "The column name to transform"
+                  },
+                  "transform": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "description": "The type of transformation to apply"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "array",
+          "description": "Array mapping when using column indices",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    }
+  }
+}

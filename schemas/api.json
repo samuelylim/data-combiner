@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "API Configuration",
+  "description": "Schema for API data source configurations in the data-combiner project",
+  "type": "object",
+  "required": ["endpoint", "column_map", "rate_limit"],
+  "properties": {
+    "endpoint": {
+      "type": "string",
+      "description": "The full endpoint of the API (including query parameters)",
+      "minLength": 1
+    },
+    "headers": {
+      "type": "object",
+      "description": "Headers to include in every request",
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "string"},
+          {
+            "type": "array",
+            "description": "Array of strings/HTTP requests for generating auth tokens",
+            "items": {
+              "oneOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "required": ["endpoint"],
+                  "properties": {
+                    "endpoint": {
+                      "type": "string",
+                      "description": "Endpoint for auth token generation"
+                    },
+                    "headers": {
+                      "type": "object",
+                      "description": "Headers for the auth token request"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Body for the auth token request"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+                      "default": "GET",
+                      "description": "HTTP method for the auth token request"
+                    },
+                    "token_key": {
+                      "type": "string",
+                      "description": "Key path to extract token from response (e.g., 'credentials.token')"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "body": {
+      "type": "string",
+      "description": "The body for each request"
+    },
+    "response_type": {
+      "type": "string",
+      "enum": ["json", "html"],
+      "default": "json",
+      "description": "The type of response expected from the API (json or html)"
+    },
+    "html_table": {
+      "type": "object",
+      "description": "Configuration for parsing HTML table responses (required when response_type is 'html')",
+      "properties": {
+        "selector": {
+          "type": "string",
+          "description": "CSS selector to identify the table element (e.g., 'table.data', '#results-table', 'div.container > table')"
+        },
+        "table_index": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Zero-based index of the table to parse if multiple tables match the selector"
+        },
+        "has_header": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the HTML table has a header row (thead or first tr)"
+        },
+        "skip_rows": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Number of rows to skip from the beginning of the table body"
+        },
+        "row_selector": {
+          "type": "string",
+          "description": "Optional CSS selector for table rows (default: 'tr' within tbody or table)"
+        },
+        "cell_selector": {
+          "type": "string",
+          "description": "Optional CSS selector for table cells (default: 'td' or 'th')"
+        }
+      }
+    },
+    "column_map": {
+      "type": "object",
+      "description": "Maps database columns to API response parameters. For JSON: maps to response keys. For HTML: maps to column indices (0-based) or header names",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Direct mapping to a response key (JSON) or column name/index (HTML)"
+          },
+          {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Column index for HTML tables (0-based)"
+          },
+          {
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+              "key": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "description": "The response key (JSON) or column name (HTML) to transform"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "The column index (HTML tables, 0-based)"
+                  }
+                ]
+              },
+              "transform": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "The type of transformation to apply"
+                  }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    "pagination": {
+      "type": "object",
+      "description": "Pagination configuration for the API",
+      "properties": {
+        "next_page_url": {
+          "type": "string",
+          "description": "Key path for the next page URL"
+        },
+        "total_records_key": {
+          "type": "string",
+          "description": "Key path for total number of records"
+        },
+        "skip_records_param": {
+          "type": "string",
+          "description": "Query parameter for skipping records (offset)"
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of records per request"
+        },
+        "page_num_param": {
+          "type": "string",
+          "description": "Query parameter for page number"
+        }
+      }
+    },
+    "rate_limit": {
+      "type": "object",
+      "description": "Rate limiting configuration",
+      "properties": {
+        "requests_per_minute": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum requests allowed per minute"
+        },
+        "retry_after_header": {
+          "type": "string",
+          "description": "Response header containing retry-after information"
+        }
+      }
+    }
+  }
+}

@@ -18,7 +18,9 @@ sources
 
 ### APIs JSON
 
-Each JSON file in ``/apis`` contains information about how to call the specific API, as well as how to interpret the APIs responses:
+Each JSON file in ``/apis`` contains information about how to call the specific API, as well as how to interpret the APIs responses. Supports both JSON APIs and HTML table scraping.
+
+#### JSON API Example
 ```json
 {
   "endpoint": "https://api.example.com/data", # REQUIRED: The full endpoint of the API (including query parameters)
@@ -38,7 +40,8 @@ Each JSON file in ``/apis`` contains information about how to call the specific 
         }
    ]
   },
-  "body" : "filter=True" # Optional: The body for each request
+  "body" : "filter=True", # Optional: The body for each request
+  "response_type": "json", # Optional: Type of response - "json" (default) or "html"
   "column_map": { # REQUIRED: Maps columns in the database to parameters from the response. Transformations can be applied before insertion
     "id": "record_id",
     "name": "full_name",
@@ -58,7 +61,7 @@ Each JSON file in ``/apis`` contains information about how to call the specific 
       }
     }
   },
-  "pagination": { # Optional: If not spec/ified, only one HTTP request is made. If included, only enough parameters to properly describe pagination are required. See [docs/pagination](docspagination) for more details.
+  "pagination": { # Optional: If not specified, only one HTTP request is made. If included, only enough parameters to properly describe pagination are required. See [docs/pagination](docspagination) for more details.
     "next_page_url": "links.next", # The key for the next page - Pagination will stop if this key is not found
     "total_records_key": "meta.total", # The key for the total number of records the API will return - Pagination will stop when this number is reached
     "skip_records_param": "offset", # The query parameter that specifies the number of records to skip. Will increment by batch_size until total_records_key is reached
@@ -67,6 +70,52 @@ Each JSON file in ``/apis`` contains information about how to call the specific 
   },
   "rate_limit": { # REQUIRED: Describes the rate limit of the API
     "requests_per_minute": 60,
+    "retry_after_header": "Retry-After"
+  }
+}
+```
+
+#### HTML Table API Example
+```json
+{
+  "endpoint": "https://example.com/data-table", # REQUIRED: The full endpoint returning HTML with a table
+  "headers": { # Optional: Headers to include in every request
+    "User-Agent": "Mozilla/5.0"
+  },
+  "response_type": "html", # REQUIRED for HTML: Specifies that the response is HTML
+  "html_table": { # REQUIRED when response_type is "html": Configuration for parsing HTML tables
+    "selector": "table.data-table", # REQUIRED: CSS selector to identify the table (e.g., "table.data", "#results", "div.container > table")
+    "table_index": 0, # Optional: Zero-based index if multiple tables match selector (default: 0)
+    "has_header": true, # Optional: Whether table has header row in <thead> or first <tr> (default: true)
+    "skip_rows": 0, # Optional: Number of body rows to skip from the beginning (default: 0)
+    "row_selector": "tbody > tr", # Optional: Custom CSS selector for rows (default: "tr" within tbody or table)
+    "cell_selector": "td" # Optional: Custom CSS selector for cells (default: "td" or "th")
+  },
+  "column_map": { # REQUIRED: Maps database columns to table columns (by index or header name)
+    "id": 0, # Map to first column (0-based index)
+    "name": "Full Name", # Map to column with header "Full Name"
+    "creation_date": { 
+      "key": 2, # Map to third column (0-based index)
+      "transform": {
+        "type": "date_format",
+        "from": "MM/DD/YYYY",
+        "to": "YYYY-MM-DD"
+      }
+    },
+    "item_price": {
+      "key": "Price", # Map to column with header "Price"
+      "transform": {
+        "type": "multiply",
+        "factor": 100
+      }
+    }
+  },
+  "pagination": { # Optional: Pagination for HTML tables - use page_num_param for page-based navigation
+    "page_num_param": "page", # Query parameter for page number
+    "batch_size": 50 # Expected number of rows per page (used to detect when pagination ends)
+  },
+  "rate_limit": { # REQUIRED: Describes the rate limit
+    "requests_per_minute": 30,
     "retry_after_header": "Retry-After"
   }
 }

@@ -1,72 +1,185 @@
-"""
-Response value handler module.
-
-This module provides functionality to handle response values that can be
-either raw strings or transformer specifications, following the column_map
-format from the data-combiner configuration.
-"""
-
 from typing import Union, Dict, Any
+import json
+import sys
+import asyncio
+from pathlib import Path
 from transformers import get_transformer_class
+from jsonschema import validate, ValidationError, SchemaError
+from http_client import make_request, close_session
+from import_loader import load_all_imports
 
 
-def response_value_handler(value: Any, definition: Union[str, Dict[str, Any]]) -> str:
+# Cache for loaded schemas
+_SCHEMA_CACHE = {}
+
+
+def load_schema(schema_name: str) -> Dict[str, Any]:
     """
-    Handle response values based on column_map definitions from configuration.
-    
-    This function processes values according to the data-combiner column_map format.
-    If the definition is a string, it's treated as a direct key lookup and the value
-    is returned as a string. If it's a dict with a transform specification, the
-    transformer is applied and the result is converted to a string.
+    Load and cache a JSON schema from the schemas directory.
     
     Args:
-        value: The value to process (can be any type depending on the transformer)
-        definition: Either a string (direct mapping, value returned as-is) or a
-                   dictionary with optional 'transform' key containing transformer
-                   specification (e.g., {"transform": {"type": "multiply", "factor": 100}})
+        schema_name: Name of the schema file (without .json extension)
+                    e.g., 'api', 'dataset', or 'import'
     
     Returns:
-        Always returns a string - either the value converted to string or the
-        transformed value converted to a string.
-    
+        Dictionary containing the JSON schema
+        
     Raises:
-        ValueError: If the transformer type is not recognized
-        KeyError: If required parameters are missing from the transformer specification
-        TypeError: If parameters have wrong type
-    
-    Examples:
-        >>> # Direct mapping (string definition)
-        >>> response_value_handler("John", "full_name")
-        'John'
-        
-        >>> # With transformation (dict definition)
-        >>> response_value_handler(5, {"transform": {"type": "multiply", "factor": 100}})
-        '500'
+        FileNotFoundError: If schema file doesn't exist
+        json.JSONDecodeError: If schema file contains invalid JSON
     """
-    # If definition is a string, just return the value as string
-    if isinstance(definition, str):
-        return str(value)
+    if schema_name in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[schema_name]
     
-    # Handle dictionary definition with optional transform
-    if isinstance(definition, dict):
-        # If no transform specified, return value as string
-        if "transform" not in definition:
-            return str(value)
-        
-        transform_spec = definition["transform"]
-        
-        # Validate transform specification
-        if not isinstance(transform_spec, dict):
-            raise TypeError("Transform specification must be a dictionary")
-        
-        transformer_type = transform_spec.get("type")
-        if not transformer_type:
-            raise KeyError("Transform specification must include 'type' field")
-        
-        # Get the transformer class, create instance with validation, transform, and return as string
-        transformer_class = get_transformer_class(transformer_type)
-        transformer = transformer_class.from_dict(transform_spec)
-        transformed_value = transformer.transform(value)
-        return str(transformed_value)
+    # Get the project root directory (parent of src/)
+    project_root = Path(__file__).parent.parent
+    schema_path = project_root / "schemas" / f"{schema_name}.json"
     
-    raise TypeError(f"Invalid definition type: {type(definition)}")
+    if not schema_path.exists():
+        raise FileNotFoundError(f"Schema file not found: {schema_path}")
+    
+    with open(schema_path, 'r', encoding='utf-8') as f:
+        schema = json.load(f)
+        _SCHEMA_CACHE[schema_name] = schema
+        return schema
+
+
+def validate_config(config: Dict[str, Any], schema_name: str, source_name: str) -> None:
+    """
+    Validate a configuration against its JSON schema.
+    
+    Args:
+        config: The configuration dictionary to validate
+        schema_name: Name of the schema to validate against ('api', 'dataset', or 'import')
+        source_name: Name of the source file/folder for error reporting
+        
+    Raises:
+        SystemExit: If validation fails
+    """
+    try:
+        schema = load_schema(schema_name)
+        validate(instance=config, schema=schema)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except SchemaError as e:
+        print(f"Error: Invalid schema '{schema_name}.json': {e.message}")
+        sys.exit(1)
+    except ValidationError as e:
+        print(f"Error: Validation failed for {source_name}")
+        print(f"  Path: {' -> '.join(str(p) for p in e.path) if e.path else 'root'}")
+        print(f"  Message: {e.message}")
+        sys.exit(1)
+
+def load_sources() -> Dict[str, list]:
+    """
+    Load data source configurations from the sources directory.
+    
+    Loads configuration files according to the data-combiner structure:
+    - APIs: JSON files from sources/apis/
+    - Datasets: Folders with structure.json from sources/datasets/
+    - Imports: JSON files from sources/imports/
+    
+    Returns:
+        Dictionary with keys 'apis', 'datasets', and 'imports', each containing
+        a list of loaded configurations.
+    """
+    sources = {
+        "apis": [],
+        "datasets": [],
+        "imports": []
+    }
+    
+    # Get the project root directory (parent of src/)
+    project_root = Path(__file__).parent.parent
+    sources_dir = project_root / "sources"
+    
+    # Load API definitions from sources/apis/
+    apis_dir = sources_dir / "apis"
+    if apis_dir.exists():
+        for file_path in apis_dir.glob("*.json"):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    api_config = json.load(f)
+                    # Validate against API schema
+                    validate_config(api_config, 'api', file_path.name)
+                    api_config['_source_file'] = file_path.name
+                    sources["apis"].append(api_config)
+                    print(f"Loaded API config: {file_path.name}")
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON in {file_path.name}: {e}")
+                sys.exit(1)
+            except Exception as e:
+                print(f"Error loading {file_path.name}: {e}")
+                sys.exit(1)
+    
+    # Load dataset definitions from sources/datasets/
+    datasets_dir = sources_dir / "datasets"
+    if datasets_dir.exists():
+        for dataset_folder in datasets_dir.iterdir():
+            if dataset_folder.is_dir():
+                structure_file = dataset_folder / "structure.json"
+                if structure_file.exists():
+                    try:
+                        with open(structure_file, 'r', encoding='utf-8') as f:
+                            dataset_config = json.load(f)
+                            # Validate against dataset schema
+                            validate_config(dataset_config, 'dataset', f"{dataset_folder.name}/structure.json")
+                            dataset_config['_source_folder'] = dataset_folder.name
+                            dataset_config['_folder_path'] = str(dataset_folder)
+                            sources["datasets"].append(dataset_config)
+                            print(f"Loaded dataset config: {dataset_folder.name}")
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing JSON in {structure_file}: {e}")
+                        sys.exit(1)
+                    except Exception as e:
+                        print(f"Error loading {structure_file}: {e}")
+                        sys.exit(1)
+                else:
+                    print(f"Warning: Dataset folder '{dataset_folder.name}' missing structure.json")
+                    sys.exit(1)
+    
+    # Load import definitions from sources/imports/
+    imports_dir = sources_dir / "imports"
+    if imports_dir.exists():
+        for file_path in imports_dir.glob("*.json"):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    import_config = json.load(f)
+                    # Validate against import schema
+                    validate_config(import_config, 'import', file_path.name)
+                    import_config['_source_file'] = file_path.name
+                    sources["imports"].append(import_config)
+                    print(f"Loaded import config: {file_path.name}")
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON in {file_path.name}: {e}")
+                sys.exit(1)
+            except Exception as e:
+                print(f"Error loading {file_path.name}: {e}")
+                sys.exit(1)
+    
+    return sources
+
+
+if __name__ == "__main__":
+    # Load sources from disk
+    sources = load_sources()
+    
+    # Print summary
+    print(f"\n=== Sources Loaded ===")
+    print(f"APIs: {len(sources['apis'])}")
+    print(f"Datasets: {len(sources['datasets'])}")
+    print(f"Imports: {len(sources['imports'])}")
+    print(f"Total: {sum(len(v) for v in sources.values())}")
+    
+    # Process imports
+    async def main():
+        try:
+            await load_all_imports(sources)
+        finally:
+            # Clean up HTTP session
+            await close_session()
+    
+    # Run async main
+    asyncio.run(main())
+
