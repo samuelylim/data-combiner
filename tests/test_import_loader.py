@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from import_loader import (
+from modules.import_loader import (
     load_import,
     _process_column_value,
     _apply_transformation,

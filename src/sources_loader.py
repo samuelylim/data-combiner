@@ -1,7 +1,7 @@
 from pathlib import Path
-from api_loader import load_api_sources
-from dataset_loader import load_dataset_sources
-from import_loader import load_import_sources
+from modules.api_loader import load_api_sources
+from modules.dataset_loader import load_dataset_sources
+from modules.import_loader import load_import_sources
 
 def load_sources(project_root: Path) -> dict:
     sources_dir = project_root / "sources"
