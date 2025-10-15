@@ -393,17 +393,3 @@ class APILoader(BaseLoader):
 # Create a singleton instance
 api_loader = APILoader()
 
-# Export convenience functions for backward compatibility
-async def load_api(config: Dict[str, Any], source_name: str) -> None:
-    """Load data from a single API configuration."""
-    await api_loader.load_single(config, source_name)
-
-
-async def load_all_apis(sources: Dict[str, List]) -> None:
-    """Load data from all API configurations."""
-    await api_loader.load_all(sources)
-
-
-def load_api_sources(sources_dir: Path) -> List[Dict[str, Any]]:
-    """Load API configuration files from the apis directory."""
-    return api_loader.load_sources(sources_dir)
