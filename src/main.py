@@ -4,17 +4,9 @@ import asyncio
 from pathlib import Path
 from http_client import make_request, close_session
 from import_loader import load_all_imports
+from dataset_loader import load_all_datasets
 from sources_loader import load_sources
 from utils.schema_utils import load_schema, validate_config
-
-
-# Cache for loaded schemas
-_SCHEMA_CACHE = {}
-
-
-
-
-
 
 if __name__ == "__main__":
     # Load sources from disk
@@ -29,9 +21,13 @@ if __name__ == "__main__":
     print(f"Imports: {len(sources['imports'])}")
     print(f"Total: {sum(len(v) for v in sources.values())}")
     
-    # Process imports
+    # Process all sources
     async def main():
         try:
+            # Process datasets (local files)
+            await load_all_datasets(sources)
+            
+            # Process imports (remote files)
             await load_all_imports(sources)
         finally:
             # Clean up HTTP session

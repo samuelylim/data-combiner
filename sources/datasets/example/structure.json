@@ -1,0 +1,13 @@
+{
+  "file_names": ["NaicsDownload.csv"],
+  "separator": ",",
+  "file_encoding": "utf-8",
+  "has_header": true,
+  "column_map": {
+    "lob": "Lob",
+    "naics_code": "NaicsCode",
+    "naics_description": "NaicsDescription",
+    "license_number": "LicenseNumber",
+    "business_name": "BusinessName"
+  }
+}
