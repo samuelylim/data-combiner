@@ -3,9 +3,7 @@ import sys
 import asyncio
 from pathlib import Path
 from utils.http_client import make_request, close_session
-from modules.import_loader import load_all_imports
-from modules.dataset_loader import load_all_datasets
-from modules.api_loader import load_all_apis
+from modules import get_all_loaders
 from sources_loader import load_sources
 from utils.schema_utils import load_schema, validate_config
 
@@ -25,14 +23,13 @@ if __name__ == "__main__":
     # Process all sources
     async def main():
         try:
-            # Process datasets (local files)
-            await load_all_datasets(sources)
+            # Get all available loaders
+            loaders = get_all_loaders()
             
-            # Process imports (remote files)
-            await load_all_imports(sources)
-            
-            # Process APIs (live data sources)
-            await load_all_apis(sources)
+            # Process each loader type
+            for loader in loaders:
+                await loader.load_all(sources)
+                
         finally:
             # Clean up HTTP session
             await close_session()
