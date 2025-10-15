@@ -19,7 +19,7 @@ sources
 ### APIs JSON
 
 Each JSON file in ``/apis`` contains information about how to call the specific API, as well as how to interpret the APIs responses:
-```
+```json
 {
   "endpoint": "https://api.example.com/data", # REQUIRED: The full endpoint of the API (including query parameters)
   "headers": { # Optional: Headers to include in every request, bearer tokens can be generated (see example)
@@ -75,7 +75,7 @@ Each JSON file in ``/apis`` contains information about how to call the specific 
 ### Datasets structure
 
 ``/datasets`` contains data that needs to be imported from a file. Can be csv, tsv, or xlsx. Each sub folder represents a single data source and must include a ``structure.json`` file describing the format of the data:
-```
+```json
 {
   "file_names": ["2020census.csv"], # Optional: Defaults to all other files in the folder
   "file_patterns": ["*census.csv"], # Optional: Combines with file_names based on a regex pattern
@@ -110,7 +110,7 @@ Each JSON file in ``/apis`` contains information about how to call the specific 
 ### Imports structure
 
 Each JSON file in ``/imports`` contains information about how to download and interpret a file. It's like a mix of ``/apis`` and ``/datasets``, since it can pull live data in the form of a dataset.
-```
+```json
 {
   "endpoint": "https://data.gov/download", # REQUIRED: The URL to download the bulk data file
   "headers": { # Optional: Headers to include in the request
