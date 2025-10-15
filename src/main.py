@@ -5,6 +5,7 @@ from pathlib import Path
 from http_client import make_request, close_session
 from import_loader import load_all_imports
 from dataset_loader import load_all_datasets
+from api_loader import load_all_apis
 from sources_loader import load_sources
 from utils.schema_utils import load_schema, validate_config
 
@@ -29,6 +30,9 @@ if __name__ == "__main__":
             
             # Process imports (remote files)
             await load_all_imports(sources)
+            
+            # Process APIs (live data sources)
+            await load_all_apis(sources)
         finally:
             # Clean up HTTP session
             await close_session()

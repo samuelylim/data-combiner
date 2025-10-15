@@ -165,6 +165,12 @@
           "type": "string",
           "description": "Query parameter for skipping records (offset)"
         },
+        "initial_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Initial offset value for skip_records_param (e.g., 1 if API starts at 1 instead of 0)"
+        },
         "batch_size": {
           "type": "integer",
           "minimum": 1,
@@ -188,8 +194,16 @@
         "retry_after_header": {
           "type": "string",
           "description": "Response header containing retry-after information"
+        },
+        "shared_limit_key": {
+          "type": "string",
+          "description": "Optional key for shared rate limit across multiple APIs (e.g., 'example.com' to share limits with other APIs using same key)"
         }
       }
+    },
+    "records_path": {
+      "type": "string",
+      "description": "Optional: For JSON APIs, the dot-notation path to the array of records in the response (e.g., 'data.items', 'results'). If not specified, assumes response is the array itself."
     }
   }
 }

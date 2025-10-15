@@ -1,0 +1,17 @@
+{
+  "endpoint": "https://jsonplaceholder.typicode.com/posts",
+  "response_type": "json",
+  "column_map": {
+    "post_id": "id",
+    "user_id": "userId",
+    "title": "title",
+    "content": "body"
+  },
+  "pagination": {
+    "page_num_param": "_page",
+    "batch_size": 10
+  },
+  "rate_limit": {
+    "requests_per_minute": 30
+  }
+}

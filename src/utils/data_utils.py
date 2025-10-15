@@ -8,6 +8,36 @@ from typing import Dict, Any, List, Union
 from transformers import get_transformer_class
 
 
+def get_nested_value(data: Dict[str, Any], key_path: str) -> Any:
+    """
+    Extract a value from a nested dictionary using dot notation.
+    
+    Args:
+        data: The dictionary to extract from
+        key_path: Dot-separated path (e.g., "user.name", "data.items")
+    
+    Returns:
+        The value at the specified path
+        
+    Raises:
+        KeyError: If the path doesn't exist in the dictionary
+    
+    Examples:
+        >>> get_nested_value({"user": {"name": "John"}}, "user.name")
+        'John'
+        >>> get_nested_value({"data": {"items": [1, 2, 3]}}, "data.items")
+        [1, 2, 3]
+    """
+    keys = key_path.split('.')
+    value = data
+    for key in keys:
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            raise KeyError(f"Key path '{key_path}' not found in data (failed at '{key}')")
+    return value
+
+
 def apply_transformation(value: Any, transform_spec: Dict[str, Any]) -> Any:
     """
     Apply a transformation to a value.
