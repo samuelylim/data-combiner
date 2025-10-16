@@ -1,26 +1,44 @@
-version: '3.8'
-
 services:
   mariadb:
-    image: mariadb:11.2
-    container_name: data-combiner-mariadb
-    restart: unless-stopped
+    image: mariadb:latest
+    restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: rootpassword
-      MARIADB_DATABASE: data_combiner_test
-      MARIADB_USER: testuser
-      MARIADB_PASSWORD: testpassword
+      MYSQL_ROOT_PASSWORD: example_root_password
+      MYSQL_DATABASE: example_db
+      MYSQL_USER: example_user
+      MYSQL_PASSWORD: example_password
     ports:
       - "3306:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./tests/db/init:/docker-entrypoint-initdb.d
+      - ./tests/db/init:/docker-entrypoint-initdb.d:Z
+    user: "0:0"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  python-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app:Z
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_USER: example_user
+      DB_PASSWORD: example_password
+      DB_NAME: example_db
+      APP_SCHEMA: example_db
+      RUN_TESTS: ${RUN_TESTS:-0}
+    command: ["sh", "-c", "if [ \"$RUN_TESTS\" = \"1\" ]; then pytest; else python src/main.py; fi"]
+    user: "0:0"
+    ports:
+      - "8000:8000"
+
 volumes:
   mariadb_data:
-    driver: local

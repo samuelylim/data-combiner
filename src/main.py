@@ -37,7 +37,7 @@ if __name__ == "__main__":
             source_list = sources[source_key]
             if isinstance(source_list, list):
                 for source_config in source_list:
-                    source_name = source_config.get('_source_name', 'unknown')
+                    source_name = source_config.get('_source_file', 'unknown')
                     config_path = source_config.get('_config_path')
                     unique_keys = source_config.get('unique_keys')
                     
