@@ -204,6 +204,14 @@
     "records_path": {
       "type": "string",
       "description": "Optional: For JSON APIs, the dot-notation path to the array of records in the response (e.g., 'data.items', 'results'). If not specified, assumes response is the array itself."
+    },
+    "unique_keys": {
+      "type": "array",
+      "description": "Optional: Column names that determine record uniqueness for upsert operations. If a record with the same values for these columns exists, it will be updated rather than inserted. If not specified, all non-null columns in the record will be used.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
     }
   }
 }

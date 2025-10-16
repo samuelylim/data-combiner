@@ -8,6 +8,7 @@ that all loader types (API, Dataset, Import) must implement.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+from utils.db_operations import get_db_manager
 
 
 class BaseLoader(ABC):
@@ -63,18 +64,29 @@ class BaseLoader(ABC):
         """
         pass
     
-    async def output_record(self, record: Dict[str, Any], source_name: str) -> None:
+    async def output_record(self, record: Dict[str, Any], source_name: str, unique_keys: Optional[List[str]] = None) -> None:
         """
-        Output a single record to the destination.
+        Output a single record to the database.
         
-        This is a shared implementation that prints records.
-        In the future, this will be replaced with SQL INSERT/UPDATE queries.
+        This method performs an upsert operation - it will insert a new record if one
+        doesn't exist with the same unique key values, or update the existing record
+        if it does. Also creates a citation linking the record to its source.
         
         Args:
             record: Dictionary mapping database column names to values
-            source_name: Name of the source for logging
+            source_name: Name of the source for logging and citation
+            unique_keys: Optional list of column names that determine record uniqueness.
+                        If not provided, uses the source's configured unique_keys.
+                        If source has no configured unique_keys, uses all non-null keys in the record.
         """
-        print(f"[{source_name}] Record: {record}")
+        try:
+            db_manager = get_db_manager()
+            data_id = db_manager.upsert_record(record, source_name, unique_keys)
+            print(f"[{source_name}] ✓ Record {data_id}: {record}")
+        except Exception as e:
+            print(f"[{source_name}] ✗ Error saving record: {e}")
+            print(f"[{source_name}]   Record data: {record}")
+            raise
     
     def get_source_key(self) -> str:
         """

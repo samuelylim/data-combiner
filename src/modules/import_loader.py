@@ -43,6 +43,7 @@ class ImportLoader(BaseLoader):
         headers = config.get("headers")
         column_map = config["column_map"]
         has_header = config.get("has_header", False)
+        unique_keys = config.get("unique_keys")  # Get unique_keys from config
         
         # Download the file
         print(f"Downloading from: {endpoint}")
@@ -80,8 +81,8 @@ class ImportLoader(BaseLoader):
                     value = process_column_value(row_data, column_def, db_column, has_header)
                     record[db_column] = value
                 
-                # Output the record
-                await self.output_record(record, source_name)
+                # Output the record with unique_keys
+                await self.output_record(record, source_name, unique_keys)
                 records_processed += 1
                 
             except Exception as e:

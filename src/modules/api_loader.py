@@ -208,6 +208,7 @@ class APILoader(BaseLoader):
         body = config.get("body")
         column_map = config["column_map"]
         pagination_config = config.get("pagination")
+        unique_keys = config.get("unique_keys")  # Get unique_keys from config
         
         # JSON-specific config
         records_path = config.get("records_path")
@@ -291,8 +292,8 @@ class APILoader(BaseLoader):
                         value = process_column_value(record_data, column_def, db_column, has_header)
                         record[db_column] = value
                     
-                    # Output the record
-                    await self.output_record(record, source_name)
+                    # Output the record with unique_keys
+                    await self.output_record(record, source_name, unique_keys)
                     records_processed += 1
                     
                 except Exception as e:

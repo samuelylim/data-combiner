@@ -7,6 +7,7 @@
     "title": "title",
     "content": "body"
   },
+  "unique_keys": ["post_id"],
   "pagination": {
     "page_num_param": "_page",
     "batch_size": 10

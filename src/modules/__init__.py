@@ -145,6 +145,49 @@ def get_loader_info() -> Dict[str, Type[BaseLoader]]:
     return info
 
 
+def extract_columns_from_column_map(column_map) -> set:
+    """
+    Extract database column names from a column_map configuration.
+    
+    Args:
+        column_map: The column_map from a source configuration (can be dict or list)
+        
+    Returns:
+        Set of database column names
+    """
+    columns = set()
+    
+    if isinstance(column_map, dict):
+        # Object mapping: keys are database column names
+        columns.update(column_map.keys())
+    elif isinstance(column_map, list):
+        # Array mapping: values are database column names
+        columns.update(column_map)
+    
+    return columns
+
+
+def scan_sources_for_columns(sources: Dict[str, list]) -> set:
+    """
+    Scan all loaded source configurations to extract database column names.
+    
+    Args:
+        sources: Dictionary of loaded source configurations
+        
+    Returns:
+        Set of all unique database column names across all sources
+    """
+    all_columns = set()
+    
+    for source_type, source_list in sources.items():
+        for source_config in source_list:
+            if 'column_map' in source_config:
+                columns = extract_columns_from_column_map(source_config['column_map'])
+                all_columns.update(columns)
+    
+    return all_columns
+
+
 def load_all_sources(sources_dir: Path) -> Dict[str, list]:
     """
     Automatically load all source configurations using discovered loaders.
@@ -152,7 +195,8 @@ def load_all_sources(sources_dir: Path) -> Dict[str, list]:
     This function:
     1. Discovers all available loaders
     2. Calls each loader's load_sources() method
-    3. Returns a dictionary with all loaded sources
+    3. Scans all sources to determine required database columns
+    4. Returns a dictionary with all loaded sources
     
     Args:
         sources_dir: Path to the sources directory
@@ -160,6 +204,7 @@ def load_all_sources(sources_dir: Path) -> Dict[str, list]:
     Returns:
         Dictionary mapping source types to their configurations
         e.g., {'apis': [...], 'datasets': [...], 'imports': [...]}
+        Also includes a special '_metadata' key with column information
     """
     sources = {}
     loaders = get_all_loaders()
@@ -176,6 +221,18 @@ def load_all_sources(sources_dir: Path) -> Dict[str, list]:
             print(f"✗ Error loading {loader.LOADER_TYPE} sources: {e}")
             sources[source_key] = []
     
+    # Scan all sources for database columns
+    all_columns = scan_sources_for_columns(sources)
+    sources['_metadata'] = {
+        'columns': sorted(all_columns),
+        'column_count': len(all_columns)
+    }
+    
+    print(f"\n=== Database Schema Analysis ===")
+    print(f"Total unique columns required: {len(all_columns)}")
+    if all_columns:
+        print(f"Columns: {', '.join(sorted(all_columns))}")
+    
     return sources
 
 
@@ -187,4 +244,6 @@ __all__ = [
     'get_loader_by_type',
     'get_loader_info',
     'load_all_sources',
+    'scan_sources_for_columns',
+    'extract_columns_from_column_map',
 ]

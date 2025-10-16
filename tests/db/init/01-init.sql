@@ -11,31 +11,13 @@
 USE data_combiner_test;
 
 -- ============================================================================
--- SCHEMA DEFINITIONS
+-- APPLICATION SCHEMA
 -- ============================================================================
--- Define your tables, indexes, and constraints here
--- These should be the same across all environments
+-- The application will create its own schema with the name defined in APP_SCHEMA
+-- environment variable (default: 'data_combiner'). This script just ensures
+-- the base database exists. The application's DatabaseManager will handle
+-- creating the actual tables: sources, data, and citations.
 
--- Example: Create a sample table
--- Uncomment and modify as needed for your project
-
--- CREATE TABLE IF NOT EXISTS data_sources (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     name VARCHAR(255) NOT NULL,
---     source_type ENUM('api', 'dataset', 'import') NOT NULL,
---     config_path VARCHAR(500),
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
---     INDEX idx_source_type (source_type),
---     INDEX idx_created_at (created_at)
--- );
-
--- CREATE TABLE IF NOT EXISTS data_records (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     source_id INT,
---     data JSON,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (source_id) REFERENCES data_sources(id) ON DELETE CASCADE,
---     INDEX idx_source_id (source_id),
---     INDEX idx_created_at (created_at)
--- );
+-- Note: The application tables will be created dynamically based on the
+-- column_map configurations in your source files. Run main.py to initialize
+-- the schema with all required columns.
