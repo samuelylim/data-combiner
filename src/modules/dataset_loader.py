@@ -217,18 +217,3 @@ class DatasetLoader(BaseLoader):
 
 # Create a singleton instance
 dataset_loader = DatasetLoader()
-
-# Export convenience functions for backward compatibility
-async def load_dataset(config: Dict[str, Any], source_name: str) -> None:
-    """Load data from a single dataset configuration."""
-    await dataset_loader.load_single(config, source_name)
-
-
-async def load_all_datasets(sources: Dict[str, List]) -> None:
-    """Load data from all dataset configurations."""
-    await dataset_loader.load_all(sources)
-
-
-def load_dataset_sources(sources_dir: Path) -> List[Dict[str, Any]]:
-    """Load dataset configuration files from the datasets directory."""
-    return dataset_loader.load_sources(sources_dir)

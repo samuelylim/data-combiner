@@ -157,18 +157,3 @@ class ImportLoader(BaseLoader):
 
 # Create a singleton instance
 import_loader = ImportLoader()
-
-# Export convenience functions for backward compatibility
-async def load_import(config: Dict[str, Any], source_name: str) -> None:
-    """Load data from a single import configuration."""
-    await import_loader.load_single(config, source_name)
-
-
-async def load_all_imports(sources: Dict[str, List]) -> None:
-    """Load data from all import configurations."""
-    await import_loader.load_all(sources)
-
-
-def load_import_sources(sources_dir: Path) -> List[Dict[str, Any]]:
-    """Load import configuration files from the imports directory."""
-    return import_loader.load_sources(sources_dir)
